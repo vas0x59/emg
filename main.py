@@ -7,7 +7,10 @@ import matplotlib.animation as animation
 import threading
 from pandas import DataFrame
 import pandas as pd
-
+from Ampl import Ampl
+from MedianArray import MedianArray
+from RegCatboost import RegCatboost
+rc = RegCatboost('model_4_dima')
 ar = ArduinoReader("/dev/ttyACM1")
 
 ar.start()
@@ -20,7 +23,9 @@ ys = []
 reg = False
 save = False
 
-df = DataFrame([], columns = ['unixtime', 'emg0', 'emg1'])
+cc = ['unixtime', 'emg0', 'emg1', 'emg2', 'emg0_ampl', 'emg1_ampl', 'emg2_ampl', 'emg0_med', 'emg1_med',]
+
+df = DataFrame([[0 for i in cc]], columns = cc)
 
 def animate(i, xs, ys):
 
@@ -52,19 +57,37 @@ def press(event):
     if event.key == 'y':
         save = True
 
+emg0_ampl = Ampl(20)
+emg1_ampl = Ampl(20)
+emg2_ampl = Ampl(20)
+
+emg0_med = MedianArray(20)
+emg1_med = MedianArray(20)
+
 # Set up plot to call animate() function periodically
 def up():
     global df
     global save
     global reg
     while True:
-        print(ar.values, save, reg)
-        if reg:
-            df = df.append({'unixtime': time.time(), 'emg0':ar.values[0], 'emg1':ar.values[1]}, ignore_index=True)
+        df_p = DataFrame({
+                'emg0':[ar.values[0]], 'emg1':[ar.values[1]], 'emg2':[ar.values[2]],
+                'emg0_ampl':[emg0_ampl.calc(ar.values[0])], 'emg1_ampl':[emg1_ampl.calc(ar.values[1])],
+                'emg0_med':[emg0_med.calc(ar.values[0])], 'emg1_med':[emg1_med.calc(ar.values[1])], 
+                'emg2_ampl':[emg2_ampl.calc(ar.values[2])]})
+        print(rc.predict(df_p))
+        if reg: 
+            df = df.append({'unixtime': time.time(), 
+                'emg0':ar.values[0], 'emg1':ar.values[1], 'emg2':ar.values[2],
+                'emg0_ampl':emg0_ampl.calc(ar.values[0]), 'emg1_ampl':emg1_ampl.calc(ar.values[1]),
+                'emg0_med':emg0_med.calc(ar.values[0]), 'emg1_med':emg1_med.calc(ar.values[1]), 
+                'emg2_ampl':emg2_ampl.calc(ar.values[2])}, ignore_index=True)
+            print(df)
         if save:
-            df.to_csv('./hello_world_from_markovka' + str(int(time.time())) +'.csv')
-            df = DataFrame([], columns = ['unixtime', 'emg0', 'emg1'])
+            df.to_csv('./3_sen_dima' + str(int(time.time())) +'.csv')
+            df = DataFrame([], columns = cc)
             save = False
+        
         time.sleep(0.05)
 
 t = threading.Thread(target=up, args=())
