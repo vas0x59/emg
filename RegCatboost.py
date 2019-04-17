@@ -2,7 +2,7 @@ import catboost
 
 class RegCatboost:
     def __init__(self, url):
-        self.clf = catboost.CatBoostClassifier()
+        self.clf = catboost.CatBoostRegressor()
         self.clf.load_model(url)
 
     def predict(self, data):

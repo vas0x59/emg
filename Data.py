@@ -10,11 +10,12 @@ class Data:
             if len(template[i]) > 1:
                 for j in range(template[i][0]):
                     for y in range(template[i][1]):
-                        self.columns.append(i + str(j) + "_" + str(y))
+                        self.columns.append(i + "_" + str(j) + "_" + str(y))
             else:
                 for j in range(template[i][0]):
                     self.columns.append(i+ "_" + str(j))
 
         self.df = DataFrame([[0 for i in self.columns]], columns = self.columns)
     def updateData(self, col, data):
+        # print(self.df)
         self.df[col] = data

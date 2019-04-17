@@ -14,8 +14,8 @@ from MinMaxValues import MinMaxValues
 from Data import Data
 
 from RegCatboost import RegCatboost
-rc = RegCatboost('model_4_dima')
-ar = ArduinoReader("/dev/ttyACM1")
+rc = RegCatboost('model_8_ilya')
+ar = ArduinoReader("/dev/ttyACM0")
 
 ar.start()
 
@@ -27,8 +27,9 @@ ys = []
 reg = False
 save = False
 
-cc = ['unixtime', 'emg0', 'emg1', 'emg2', 'emg0_ampl', 'emg1_ampl', 'emg2_ampl', 'emg0_med', 'emg1_med',]
-
+# cc = ['unixtime', 'emg0', 'emg1', 'emg2', 'emg0_ampl', 'emg1_ampl', 'emg2_ampl', 'emg0_med', 'emg1_med',]
+d = Data({'emg':[3], 'emg_ampl':[3], 'emg_med':[3], 'emg_min':[3], 'emg_max':[3], 'emg_prev':[3, 20]})
+cc = d.columns
 df = DataFrame([[0 for i in cc]], columns = cc)
 
 def animate(i, xs, ys):
@@ -60,37 +61,81 @@ def press(event):
         reg = not reg
     if event.key == 'y':
         save = True
+def setEmg(dq, vals):
+    for i in range(len(vals)):
+        dq.updateData("emg_"+str(i), vals[i])
+    return dq
 
+def setEmgObj(dq, vals, su):
+    for i in range(len(vals)):
+        dq.updateData("emg_" + su + "_" + str(i), vals[i].getVal())
+    return dq
+def setEmgObj2(dq, vals, su, c):
+    for i in range(len(vals)):
+        dq.updateData("emg_" + su + "_" + str(i), vals[i].getVal(c))
+    return dq
+def setEmgObj3(dq, vals, su, c, y):
+    for i in range(len(vals)):
+        dq.updateData("emg_" + su + "_" + str(i) + "_" + str(y), vals[i].getVal(c))
+    return dq
+def updateEmgObj(objs, vals):
+    for i in range(len(vals)):
+        objs[i].update(vals[i])
 ampls = [Ampl(30) for i in range(3)]
 meds = [MedianArray(30) for i in range(3)]
-prev_vals = [PrevValues(20) for i in range(3)]
+prev_vals = [PrevValues(20, 500) for i in range(3)]
 min_max_vals = [MinMaxValues(20) for i in range(3)]
-d = Data({'emg':[3], 'emg_ampl':[3], 'emg_med':[3], 'emg_min':[3], 'emg_max':[3], 'emg_prev':[3, 20]})
+vals = [500, 500, 500]
 # Set up plot to call animate() function periodically
 def up():
     global df
     global save
     global reg
+    global d
+    global vals
     while True:
-        df_p = DataFrame({
-                'emg0':[ar.values[0]], 'emg1':[ar.values[1]], 'emg2':[ar.values[2]],
-                'emg0_ampl':[emg0_ampl.calc(ar.values[0])], 'emg1_ampl':[emg1_ampl.calc(ar.values[1])],
-                'emg0_med':[emg0_med.calc(ar.values[0])], 'emg1_med':[emg1_med.calc(ar.values[1])], 
-                'emg2_ampl':[emg2_ampl.calc(ar.values[2])]})
-        print(rc.predict(df_p))
+        # vals = ar.values
+        # updateEmgObj(ampls, vals)
+        # updateEmgObj(meds, vals)
+        # updateEmgObj(prev_vals, vals)
+        # updateEmgObj(min_max_vals, vals)
+        # time.sleep(0.001)
+
+        d = setEmg(d, vals)
+        d = setEmgObj(d, ampls, "ampl")
+        d = setEmgObj(d, meds, "med")
+        d = setEmgObj2(d, min_max_vals, "min", 0)
+        d = setEmgObj2(d, min_max_vals, "max", 1)
+        for i in range(20):
+            d = setEmgObj3(d, prev_vals, "prev", i, i)
+        
+        print(rc.predict(d.df))
         if reg: 
-            df = df.append({'unixtime': time.time(), 
-                'emg0':ar.values[0], 'emg1':ar.values[1], 'emg2':ar.values[2],
-                'emg0_ampl':emg0_ampl.calc(ar.values[0]), 'emg1_ampl':emg1_ampl.calc(ar.values[1]),
-                'emg0_med':emg0_med.calc(ar.values[0]), 'emg1_med':emg1_med.calc(ar.values[1]), 
-                'emg2_ampl':emg2_ampl.calc(ar.values[2])}, ignore_index=True)
+            df = pd.concat([df, d.df], axis=0)
             print(df)
         if save:
-            df.to_csv('./3_sen_dima' + str(int(time.time())) +'.csv')
-            df = DataFrame([], columns = cc)
+            df.to_csv('./3_sen_ilya' + str(int(time.time())) +'.csv')
+            df = d.df
             save = False
         
-        time.sleep(0.05)
+        time.sleep(0.001)
+
+def calc():
+    global df
+    global save
+    global reg
+    global d
+    while True:
+        vals = ar.values
+        updateEmgObj(ampls, vals)
+        updateEmgObj(meds, vals)
+        updateEmgObj(prev_vals, vals)
+        updateEmgObj(min_max_vals, vals)
+        time.sleep(0.001)
+
+t2 = threading.Thread(target=calc, args=())
+t2.daemon = True
+t2.start()
 
 t = threading.Thread(target=up, args=())
 t.daemon = True
