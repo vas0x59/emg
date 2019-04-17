@@ -9,6 +9,10 @@ from pandas import DataFrame
 import pandas as pd
 from Ampl import Ampl
 from MedianArray import MedianArray
+from PrevValues import PrevValues
+from MinMaxValues import MinMaxValues
+from Data import Data
+
 from RegCatboost import RegCatboost
 rc = RegCatboost('model_4_dima')
 ar = ArduinoReader("/dev/ttyACM1")
@@ -57,13 +61,11 @@ def press(event):
     if event.key == 'y':
         save = True
 
-emg0_ampl = Ampl(20)
-emg1_ampl = Ampl(20)
-emg2_ampl = Ampl(20)
-
-emg0_med = MedianArray(20)
-emg1_med = MedianArray(20)
-
+ampls = [Ampl(30) for i in range(3)]
+meds = [MedianArray(30) for i in range(3)]
+prev_vals = [PrevValues(20) for i in range(3)]
+min_max_vals = [MinMaxValues(20) for i in range(3)]
+d = Data({'emg':[3], 'emg_ampl':[3], 'emg_med':[3], 'emg_min':[3], 'emg_max':[3], 'emg_prev':[3, 20]})
 # Set up plot to call animate() function periodically
 def up():
     global df
