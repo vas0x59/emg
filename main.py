@@ -14,7 +14,7 @@ from MinMaxValues import MinMaxValues
 from Data import Data
 
 from RegCatboost import RegCatboost
-rc = RegCatboost('model_8_ilya')
+rc = RegCatboost('model_8_mark')
 ar = ArduinoReader("/dev/ttyACM0")
 
 ar.start()
@@ -81,8 +81,8 @@ def setEmgObj3(dq, vals, su, c, y):
 def updateEmgObj(objs, vals):
     for i in range(len(vals)):
         objs[i].update(vals[i])
-ampls = [Ampl(30) for i in range(3)]
-meds = [MedianArray(30) for i in range(3)]
+ampls = [Ampl(45) for i in range(3)]
+meds = [MedianArray(45) for i in range(3)]
 prev_vals = [PrevValues(20, 500) for i in range(3)]
 min_max_vals = [MinMaxValues(20) for i in range(3)]
 vals = [500, 500, 500]
@@ -109,12 +109,12 @@ def up():
         for i in range(20):
             d = setEmgObj3(d, prev_vals, "prev", i, i)
         
-        print(rc.predict(d.df))
+        # print(rc.predict(d.df))
         if reg: 
             df = pd.concat([df, d.df], axis=0)
             print(df)
         if save:
-            df.to_csv('./3_sen_ilya' + str(int(time.time())) +'.csv')
+            df.to_csv('./3_sen_mark' + str(int(time.time())) +'.csv')
             df = d.df
             save = False
         
@@ -125,13 +125,14 @@ def calc():
     global save
     global reg
     global d
+    global vals
     while True:
         vals = ar.values
         updateEmgObj(ampls, vals)
         updateEmgObj(meds, vals)
         updateEmgObj(prev_vals, vals)
         updateEmgObj(min_max_vals, vals)
-        time.sleep(0.001)
+        time.sleep(0.01)
 
 t2 = threading.Thread(target=calc, args=())
 t2.daemon = True
@@ -141,5 +142,7 @@ t = threading.Thread(target=up, args=())
 t.daemon = True
 t.start()
 fig.canvas.mpl_connect('key_press_event', press)
-ani = animation.FuncAnimation(fig, animate, fargs=(xs, ys), interval=25)
+# ani = animation.FuncAnimation(fig, animate, fargs=(xs, ys), interval=25)
 plt.show()
+while True:
+    pass
